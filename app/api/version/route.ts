@@ -4,17 +4,25 @@ import { NextResponse } from 'next/server';
 const buildTime = new Date().toISOString();
 
 export async function GET() {
+  const fullSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || '';
+  const shortSha = fullSha ? fullSha.substring(0, 7) : null;
+  const repoOwner = process.env.VERCEL_GIT_REPO_OWNER || null;
+  const repoSlug = process.env.VERCEL_GIT_REPO_SLUG || null;
+  const repoUrl = repoOwner && repoSlug ? `https://github.com/${repoOwner}/${repoSlug}` : null;
+
   const data = {
     app: {
       name: 'abprakse-feedback-form',
       version: process.env.npm_package_version || null,
     },
     git: {
-      commitSha: process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || null,
+      commitSha: fullSha || null,
+      shortSha,
       commitMessage: process.env.VERCEL_GIT_COMMIT_MESSAGE || null,
       branch: process.env.VERCEL_GIT_COMMIT_REF || null,
-      repoOwner: process.env.VERCEL_GIT_REPO_OWNER || null,
-      repoSlug: process.env.VERCEL_GIT_REPO_SLUG || null,
+      repoOwner,
+      repoSlug,
+      repoUrl,
     },
     vercel: {
       env: process.env.VERCEL_ENV || (process.env.VERCEL ? 'production' : 'local'),

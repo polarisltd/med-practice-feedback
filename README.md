@@ -57,6 +57,8 @@ Notes about location:
 
 These are the recommended steps to deploy this Next.js app to Vercel.
 
+Note: This project’s Vercel config disables ESLint during production builds to avoid deployments being blocked by lint errors. Local dev can still use `pnpm run lint`. See `next.config.mjs` (eslint.ignoreDuringBuilds=true).
+
 Prerequisites
 - A GitHub, GitLab, or Bitbucket repository containing this project
 - A Vercel account (https://vercel.com/signup)
@@ -132,6 +134,11 @@ Common pitfalls
 - POST /api/feedback
   - Body: The full feedback JSON sent by the form on the home page. At minimum requires: `{ date: string (YYYY-MM-DD), summary: { overall: 1|2|3|4|5, recommend: 'Ja'|'Varbūt'|'Nē' } }`
   - Response: `{ ok: true, id: number, createdAt: string }` or an error JSON with 400/500.
+
+- GET /api/version
+  - Returns build metadata to verify what’s deployed on Vercel.
+  - Sample fields: `{ app: { name, version }, git: { commitSha, shortSha, commitMessage, branch, repoUrl }, vercel: { env, deploymentUrl, isVercel }, buildTime, now }`.
+  - In Vercel, commitSha/shortSha and branch are populated from Vercel Git env vars. Use this to confirm the deployment picked up the latest commit.
 
 ## Moving to ~/workspace and Git Init
 - To relocate:
