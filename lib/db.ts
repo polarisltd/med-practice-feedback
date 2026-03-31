@@ -1,69 +1,42 @@
-// Lazy-load pg in a way that avoids build-time resolution by Next.js when it's not available.
-// We purposefully avoid a static import to prevent "Module not found: Can't resolve 'pg'" during
-// client/edge analyses. This file is server-only.
-// eslint-disable-next-line
-let globalWithPool = global as any as { __pgPool?: any };
+// lib/db.ts  — server-only, do not import from client components
+import { Pool, neonConfig } from '@neondatabase/serverless';
 
-export function getPool() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set. Add it to your environment (.env.local).');
-  }
-  if (!globalWithPool.__pgPool) {
-    // Use eval('require') to avoid static analysis bundling
-    // eslint-disable-next-line
-    let pg: typeof import('pg') | undefined;
-    try {
-      pg = eval('require')('pg') as typeof import('pg');
-    } catch (e: any) {
-      // If the native 'pg' driver isn't available (e.g., on Vertex), fall back to Neon serverless Pool
-      try {
-        const neon = eval('require')('@neondatabase/serverless') as typeof import('@neondatabase/serverless');
-        // Optimize serverless connections for function runtimes
-        if (neon?.neonConfig) {
-          neon.neonConfig.fetchConnectionCache = true;
-        }
-        globalWithPool.__pgPool = new neon.Pool({
-          connectionString: process.env.DATABASE_URL,
-        });
-        return globalWithPool.__pgPool as any;
-      } catch (neonErr: any) {
-        const pm = process.env.npm_config_user_agent?.includes('pnpm') ? 'pnpm install' : 'npm install';
-        const err = new Error(
-          `Postgres driver 'pg' is not installed or cannot be resolved, and fallback to '@neondatabase/serverless' also failed. Please run '${pm} add @neondatabase/serverless' or install 'pg'. Original errors: pg=${e?.message || e}; neon=${neonErr?.message || neonErr}`
-        ) as Error & { code?: string };
-        err.code = 'PG_DRIVER_MISSING';
-        throw err;
-      }
-    }
-    // If we got here, 'pg' is available: use it normally
-    globalWithPool.__pgPool = new (pg as typeof import('pg')).Pool({
-      connectionString: process.env.DATABASE_URL,
-      // Neon requires SSL. The provided URL includes sslmode=require; this flag ensures TLS in pg too.
-      ssl: { rejectUnauthorized: false },
-      // With Neon pooler host, it's fine to use pg Pool in serverless functions.
-      max: 5,
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 10000,
-    });
-  }
-  return globalWithPool.__pgPool as any;
+// Improves connection reuse across serverless function invocations
+neonConfig.fetchConnectionCache = true;
+
+// Singleton pool — reused across hot-reloads in dev and across invocations in prod
+declare global {
+    // eslint-disable-next-line no-var
+    var __pgPool: Pool | undefined;
 }
 
-export async function ensureSchema() {
-  const pool = getPool();
-  // Create a table to store the feedback if it doesn't exist yet.
-  // We keep columns for simple querying and also store full raw JSON.
-  const sql = `
+export function getPool(): Pool {
+    if (!process.env.DATABASE_URL) {
+        throw new Error('DATABASE_URL is not set. Add it to .env.local or Vercel environment variables.');
+    }
+
+    if (!globalThis.__pgPool) {
+        globalThis.__pgPool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+        });
+    }
+
+    return globalThis.__pgPool;
+}
+
+export async function ensureSchema(): Promise<void> {
+    const pool = getPool();
+    const sql = `
     CREATE TABLE IF NOT EXISTS feedback_submissions (
-      id BIGSERIAL PRIMARY KEY,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      visit_date DATE,
-      age_group TEXT,
-      sections JSONB,
-      summary JSONB,
-      open JSONB,
-      raw JSONB NOT NULL
+      id            BIGSERIAL PRIMARY KEY,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      visit_date    DATE,
+      age_group     TEXT,
+      sections      JSONB,
+      summary       JSONB,
+      open          JSONB,
+      raw           JSONB NOT NULL
     );
   `;
-  await pool.query(sql);
+    await pool.query(sql);
 }
