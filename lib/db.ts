@@ -16,9 +16,11 @@ export function getPool() {
       pg = eval('require')('pg') as typeof import('pg');
     } catch (e: any) {
       const pm = process.env.npm_config_user_agent?.includes('pnpm') ? 'pnpm install' : 'npm install';
-      throw new Error(
+      const err = new Error(
         `Postgres driver 'pg' is not installed or cannot be resolved. Please run '${pm}' in the project directory and restart the dev server. Original error: ${e?.message || e}`
-      );
+      ) as Error & { code?: string };
+      err.code = 'PG_DRIVER_MISSING';
+      throw err;
     }
     globalWithPool.__pgPool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
