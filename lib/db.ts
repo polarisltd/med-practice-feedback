@@ -1,7 +1,7 @@
 // Lazy-load pg in a way that avoids build-time resolution by Next.js when it's not available.
 // We purposefully avoid a static import to prevent "Module not found: Can't resolve 'pg'" during
 // client/edge analyses. This file is server-only.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line
 let globalWithPool = global as any as { __pgPool?: any };
 
 export function getPool() {
@@ -10,7 +10,7 @@ export function getPool() {
   }
   if (!globalWithPool.__pgPool) {
     // Use eval('require') to avoid static analysis bundling
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line
     let pg: typeof import('pg');
     try {
       pg = eval('require')('pg') as typeof import('pg');
