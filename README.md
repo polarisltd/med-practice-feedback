@@ -243,3 +243,22 @@ If you see the error “Iekšēja servera kļūda: Cannot find module 'pg'” wh
   - npm install  (or: pnpm install)
 
 With the latest code, the server will also show a clearer message suggesting to install 'pg' if it is missing.
+
+
+## Neon on serverless platforms (Vertex/Vercel/etc.)
+
+This project now supports writing to Neon Postgres even when the native `pg` driver cannot be loaded (a common constraint on some serverless platforms like Google Cloud Vertex AI Extensions / Functions).
+
+How it works:
+- At runtime, the server code first tries to load the standard `pg` driver.
+- If `pg` is unavailable, it transparently falls back to the Neon serverless driver `@neondatabase/serverless`, which speaks HTTP/WebSocket and is optimized for serverless function runtimes.
+- No code changes are required in your routes: the same pool interface is used under the hood.
+
+What you need to provide:
+- Set `DATABASE_URL` to your Neon connection string. Prefer a pooled connection string and include `sslmode=require`.
+- Ensure the dependency `@neondatabase/serverless` is installed (it's now included in package.json).
+
+Notes:
+- If both drivers are missing, the API will accept feedback but skip persistence, returning a note in the JSON response. Check your logs and install one of the drivers.
+- Using `@neondatabase/serverless` avoids native bindings and typically works in restricted environments where `pg` cannot be resolved.
+- Neon also offers a REST-like SQL over HTTP capability via this package; a separate bespoke REST API is not required for simple inserts.

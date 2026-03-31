@@ -11,18 +11,32 @@ export function getPool() {
   if (!globalWithPool.__pgPool) {
     // Use eval('require') to avoid static analysis bundling
     // eslint-disable-next-line
-    let pg: typeof import('pg');
+    let pg: typeof import('pg') | undefined;
     try {
       pg = eval('require')('pg') as typeof import('pg');
     } catch (e: any) {
-      const pm = process.env.npm_config_user_agent?.includes('pnpm') ? 'pnpm install' : 'npm install';
-      const err = new Error(
-        `Postgres driver 'pg' is not installed or cannot be resolved. Please run '${pm}' in the project directory and restart the dev server. Original error: ${e?.message || e}`
-      ) as Error & { code?: string };
-      err.code = 'PG_DRIVER_MISSING';
-      throw err;
+      // If the native 'pg' driver isn't available (e.g., on Vertex), fall back to Neon serverless Pool
+      try {
+        const neon = eval('require')('@neondatabase/serverless') as typeof import('@neondatabase/serverless');
+        // Optimize serverless connections for function runtimes
+        if (neon?.neonConfig) {
+          neon.neonConfig.fetchConnectionCache = true;
+        }
+        globalWithPool.__pgPool = new neon.Pool({
+          connectionString: process.env.DATABASE_URL,
+        });
+        return globalWithPool.__pgPool as any;
+      } catch (neonErr: any) {
+        const pm = process.env.npm_config_user_agent?.includes('pnpm') ? 'pnpm install' : 'npm install';
+        const err = new Error(
+          `Postgres driver 'pg' is not installed or cannot be resolved, and fallback to '@neondatabase/serverless' also failed. Please run '${pm} add @neondatabase/serverless' or install 'pg'. Original errors: pg=${e?.message || e}; neon=${neonErr?.message || neonErr}`
+        ) as Error & { code?: string };
+        err.code = 'PG_DRIVER_MISSING';
+        throw err;
+      }
     }
-    globalWithPool.__pgPool = new pg.Pool({
+    // If we got here, 'pg' is available: use it normally
+    globalWithPool.__pgPool = new (pg as typeof import('pg')).Pool({
       connectionString: process.env.DATABASE_URL,
       // Neon requires SSL. The provided URL includes sslmode=require; this flag ensures TLS in pg too.
       ssl: { rejectUnauthorized: false },
