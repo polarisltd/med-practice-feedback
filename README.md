@@ -2,6 +2,11 @@
 
 A Next.js 14 project (TypeScript, App Router) with Tailwind CSS and ESLint.
 
+Direct links
+- Run locally and open the updated survey wizard: http://localhost:3000/surveys/feedback1
+- Submit endpoint used by the wizard: POST http://localhost:3000/api/surveys/feedback1/submit
+- Root page (legacy simple form): http://localhost:3000/
+
 Notes about location:
 - You asked for the project under `~/workspace`. Due to the execution environment, I created it inside the current repository at:
   `/Users/robertsp/workspace/spain-agtech-website/spain-agtech-website/abprakse-feedback-form`.
@@ -52,6 +57,37 @@ Notes about location:
 - TypeScript enabled
 - Tailwind CSS preconfigured
 - ESLint with `next/core-web-vitals`
+
+## What are Next.js, React.js, and Node.js?
+
+- React.js
+  - What it is: A JavaScript library for building user interfaces, created by Facebook. React focuses on the "view" layer. You compose UIs from components with declarative JSX and manage state/props.
+  - Where it runs: In the browser (client-side) by default. It can also render on the server when paired with frameworks like Next.js.
+  - What it solves: Building complex, interactive UI components and managing UI state efficiently with a virtual DOM.
+
+- Node.js
+  - What it is: A JavaScript runtime built on Chrome's V8 engine that lets you run JS outside the browser (on servers, CLIs, scripts).
+  - Where it runs: On the server or any machine as a runtime. Enables building web servers, APIs, CLIs, background jobs, etc.
+  - What it solves: Server-side logic in JS, accessing file system/network, handling HTTP requests, connecting to databases.
+
+- Next.js
+  - What it is: A React framework for production. It adds routing, data fetching, server-side rendering (SSR), static site generation (SSG), API routes, edge/serverless support, image optimization, and more.
+  - Where it runs: Both server (Node.js or edge/serverless runtimes) and client (browser). Next.js decides what code runs where.
+  - What it solves: Full-stack React apps with great DX and performance out of the box: file-based routing, pre-rendering, streaming, caching, and deployment primitives.
+
+How they relate in this project
+- React provides the component model for the UI.
+- Next.js (built on React) structures the app (routing in the app/ directory), decides rendering strategy (SSR/SSG/CSR), and exposes server capabilities (e.g., Route Handlers, Server Actions).
+- Node.js is the runtime Vercel/your machine uses to execute Next.js' server code (e.g., API routes) and build steps. Our DB code in lib/db.ts runs on the server runtime, not in the browser.
+
+When to use which
+- Use React when you only need a UI library to embed in an existing stack or a microfrontend, and you will manage build, routing, and data fetching yourself.
+- Use Node.js when writing server-side programs/APIs/CLIs in JavaScript or TypeScript.
+- Use Next.js when building a production React app or site that benefits from routing, SSR/SSG, server components, API routes, and seamless deployment.
+
+Notes specific to this repo
+- We use Next.js 14 App Router with React 18. Many components can be Server Components by default, improving performance. "use client" marks Client Components when interactivity/state/hooks are required.
+- Database access via @neondatabase/serverless happens on the server only (never import lib/db.ts into client components). Node.js executes this code in serverless/edge functions during requests.
 
 ## Deploying to Vercel
 
@@ -262,3 +298,111 @@ Notes:
 - If both drivers are missing, the API will accept feedback but skip persistence, returning a note in the JSON response. Check your logs and install one of the drivers.
 - Using `@neondatabase/serverless` avoids native bindings and typically works in restricted environments where `pg` cannot be resolved.
 - Neon also offers a REST-like SQL over HTTP capability via this package; a separate bespoke REST API is not required for simple inserts.
+
+
+## New Survey Wizard (feedback1)
+
+Latest updates (J8K block)
+- Implemented six sub-questions under the J8K umbrella to capture whether patients received necessary information when booking an ambulatory service.
+- Question IDs: J8K_1, J8K_2, J8K_3, J8K_4, J8K_5, J8K_6.
+- Each uses a standardized 6-option scale with English lexeme keys for analytics (see Standardized answer scale below).
+- UI file: app/surveys/feedback1/page.tsx
+- Try it: http://localhost:3000/surveys/feedback1
+
+Newly added blocks (same 6-option scale)
+- J10K: Jūsu viedoklis par ārstniecības iestādes vidi un vides piekļūstamību — questions J10K_1..J10K_5.
+- J11K: Jūsu viedoklis par veselības aprūpes pakalpojuma saņemšanu — questions J11K_1..J11K_4.
+- J13K: Vai personāls izturējās ar cieņu? — questions J13K_1..J13K_4 (Ārsti, Māsas/ārsta palīgi/vecmātes, Funkcionālie speciālisti, Citi darbinieki).
+- J14K11A: Vai Jūs pietiekami iesaistīja lēmumu pieņemšanā par Jūsu veselības aprūpes procesu?
+- J15K12A: Vai uz uzdotajiem jautājumiem Jūs saņēmāt saprotamas atbildes?
+- J17K14A: Saprotamā veidā par zālēm — questions J17K14A_1..J17K14A_4.
+- J19K16A: Saprotama informācija par diagnozi un turpmāko aprūpi — questions J19K16A_1..J19K16A_4.
+
+We added a second feedback form as a step-by-step (wizard) experience and store its results in separate, analyzable tables.
+
+- URL: /surveys/feedback1
+- Backend endpoint: POST /api/surveys/feedback1/submit
+- Purpose: One question per screen; stores normalized answers allowing counts and averages per question.
+
+Notes
+- The current surveyDefinition in app/surveys/feedback1/page.tsx is a placeholder until we receive the exact questions from the PDF. The final question id is set to J29K26A.
+- Once you provide the full list of questions and their types/options, replace the surveyDefinition with the real content. No backend change is required.
+
+Database schema (auto-created if missing)
+- survey_responses: one row per wizard submission.
+  - id BIGSERIAL PK, created_at, survey_key, meta JSONB, raw JSONB
+- survey_answer_items: one row per question (or selected option for multi-select) for each response.
+  - id BIGSERIAL PK
+  - survey_key TEXT, response_id BIGINT (FK to survey_responses)
+  - question_id TEXT
+  - answer_value_numeric DOUBLE PRECISION (for Likert/scale/numbers)
+  - answer_value_text TEXT (for free text)
+  - answer_value_option TEXT (for option labels/values)
+  - answer_json JSONB (fallback)
+  - created_at TIMESTAMPTZ
+  - Indexed by (survey_key, question_id) and by numeric/option for fast aggregation
+
+Example payload
+```
+POST /api/surveys/feedback1/submit
+{
+  "meta": { "submittedAt": "2026-04-06T21:00:00Z" },
+  "answers": [
+    { "id": "Q1", "type": "likert", "value": 5 },
+    { "id": "Q2", "type": "single", "value": { "code": 1, "text": "Ja", "key": "yes" } },
+    { "id": "J8K_1", "type": "single", "value": { "code": 2, "text": "Drīzāk jā", "key": "rather_yes" } },
+    { "id": "J8K_2", "type": "single", "value": { "code": 3, "text": "Drīzāk nē", "key": "rather_no" } },
+    { "id": "Q3", "type": "likert", "value": 4 },
+    { "id": "Q4", "type": "text", "value": "Ātra uzņemšana" },
+    { "id": "Q5", "type": "comment", "value": "Vairāk stāvvietu" },
+    { "id": "J29K26A", "type": "text", "value": "Paldies!" }
+  ]
+}
+```
+
+Standardized answer scale
+- yes_info_scale (used by J8K_*):
+  - 1 Jā -> key: yes
+  - 2 Drīzāk jā -> key: rather_yes
+  - 3 Drīzāk nē -> key: rather_no
+  - 4 Nē -> key: no
+  - 5 Nevēlos atbildēt -> key: prefer_not_to_answer
+  - 6 Neattiecas -> key: not_applicable
+
+Persistence details
+- For single/multi option answers, answer_value_option stores the English key (e.g., rather_yes), answer_value_text stores the Latvian label, and answer_value_numeric stores the numeric code when provided.
+
+Example SQL for analysis
+- Count responses per option (single choice):
+```
+SELECT question_id, answer_value_option AS option, COUNT(*) AS cnt
+FROM survey_answer_items
+WHERE survey_key = 'feedback1' AND question_id = 'Q2'
+GROUP BY question_id, answer_value_option
+ORDER BY cnt DESC;
+```
+- Average rating per question (Likert 1–5):
+```
+SELECT question_id, AVG(answer_value_numeric) AS avg_score, COUNT(*) AS responses
+FROM survey_answer_items
+WHERE survey_key = 'feedback1' AND question_id IN ('Q1','Q3')
+GROUP BY question_id
+ORDER BY question_id;
+```
+- Overall averages for all numeric questions:
+```
+SELECT question_id,
+       AVG(answer_value_numeric) AS avg_score,
+       MIN(answer_value_numeric) AS min_score,
+       MAX(answer_value_numeric) AS max_score,
+       COUNT(*) AS responses
+FROM survey_answer_items
+WHERE survey_key = 'feedback1' AND answer_value_numeric IS NOT NULL
+GROUP BY question_id
+ORDER BY question_id;
+```
+
+How to customize
+- Edit app/surveys/feedback1/page.tsx and update surveyDefinition with exact questions from the PDF (types: likert, single, multi, text, number, etc.).
+- The API is generic and will normalize values based on the provided type. No changes needed unless new answer types are introduced.
+- If you want a separate path/key, duplicate the page under app/surveys/<newKey>/page.tsx and post to /api/surveys/<newKey>/submit. Use the same schema for analytics.

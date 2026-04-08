@@ -1,0 +1,120 @@
+lets implement next survey questions. they are same type.
+
+every question can be selected answer one of thease :
+
+- Jā
+- Drīzāk jā
+- Drīzāk
+nē
+- Nē
+- Nevēlos
+atbildēt
+- Neattiecas
+
+please thing how to encode them and store in database:
+
+- Jā yes
+- Drīzāk jā rather_yes
+- Drīzāk nē  rather_no
+- Nē no
+- Nevēlos atbildēt prefer_not_to_answer
+- Neattiecas not_applicable
+
+assuming they will be stored as json strings/enums etc in english.
+
+please implement this:
+
+J10K Jūsu viedoklis par ārstniecības
+
+- iestādes vidi un vides piekļūstamību:
+
+- Ārstniecības iestādē bija viegli atrast
+vietu, kurp jums vajadzēja doties, lai jums
+veiktu ārstēšanu vai izmeklējumus
+
+- Reģistratūrā bija ilgi jāgaida, līdz Jūs apkalpoja
+
+- Reģistratūrā Jūs apkalpoja laipni un cieņpilni
+
+- Telpas bija sakoptas un tīras
+
+- Nodrošināta fiziskās vides piekļūstamība cilvēkiem ar funkcionēšanas
+traucējumiem
+
+
+J11K: Jūsu viedoklis par ārstniecības
+iestādes veselības aprūpes pakalpojuma
+saņemšanu
+
+- Tika ievērots Jūsu privātums (fiziskais
+privātums, diskrētas sarunas, personiskās
+informācijas aizsardzība u.c.)
+
+- Ārstniecības iestādē jutāties fiziski un
+emocionāli droši
+
+- Veselības aprūpes pakalpojuma
+saņemšanas laiks sakrita ar pieraksta
+laiku (negaidījāt ilgāk kā 15 minūtes)
+
+- Jums bija pietiekami daudz laika, lai ar
+veselības aprūpes speciālistu pārrunātu
+Jūsu medicīnisko problēmu vai veselību
+kopumā
+
+
+J13K Vai ārstniecības iestādes personāls
+pret Jums izturējās ar cieņu? (izvēlēties
+tikai atbilstošo atbilžu variantu)
+
+
+- Ārsti
+
+- Māsas/ārsta palīgi/vecmātes
+
+- Funkcionālie speciālisti (fizioterapeits,
+ergoterapeits, tehniskais ortopēds,
+audiologopēds, uztura speciālists,
+mākslas terapeits, optometrists)
+
+- Citi darbinieki
+
+J14K11A Vai Jūs pietiekami iesaistīja lēmumu pieņemšanā par Jūsu veselības aprūpes procesu?
+
+
+J15K12A Vai uz uzdotajiem jautājumiem Jūs saņēmāt saprotamas atbildes?
+
+J17K14A Vai ārstniecības persona Jums
+saprotamā veidā:
+
+- pastāstīja, kādam nolūkam zāles
+paredzētas
+
+- paskaidroja par iespējamām
+blakusparādībām un mijiedarbību ar
+citām zālēm, kuras regulāri lietojat
+
+- izskaidroja zāļu lietošanu
+pastāstīja, kur ziņot par zāļu
+blakusparādībām jeb blaknēm
+
+J19K16A Vai veselības aprūpes
+pakalpojuma saņemšanas laikā
+ārstniecības persona sniedza Jums
+saprotamu informāciju:
+
+- par Jūsu slimības diagnozi
+
+- kā jāturpina ārstēšanos un/vai veselības
+aprūpi
+
+- kam turpmāk jāpievērš uzmanība
+(piemēram, iespējamiem simptomiem,
+sajūtām un veselības problēmām), un
+ieteikumus, kā šajās situācijās rīkoties
+
+- ar ko sazināties (piemēram, ar ārstējošo
+ārstu, ģimenes ārstu, neatliekamo
+medicīnas palīdzību, vai kādu citu), ja
+mājās rodas veselības problēmas.
+
