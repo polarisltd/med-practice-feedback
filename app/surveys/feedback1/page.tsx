@@ -32,6 +32,8 @@ type Question = {
   min?: number; // for scale/number
   max?: number; // for scale/number
   required?: boolean;
+  // When true, the question is excluded from the survey flow and submission payload
+  disabled?: boolean;
 };
 
 // NOTE: Replace this definition with the real questions/options from the PDF.
@@ -321,6 +323,7 @@ const surveyDefinition: Question[] = [
       { code: 2, text: 'Pacienta pārstāvis' },
     ],
     required: true,
+    disabled: true,
   },
   {
     id: 'J05K',
@@ -548,7 +551,9 @@ export default function Feedback1WizardPage() {
       }
       return 0;
     };
-    return [...surveyDefinition].sort((a, b) => cmp(a.id, b.id));
+    return [...surveyDefinition]
+      .filter(q => !q.disabled)
+      .sort((a, b) => cmp(a.id, b.id));
   }, []);
 
   const q = sortedSurvey[step];
